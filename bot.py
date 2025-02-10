@@ -100,7 +100,7 @@ session = create_new_session()
 vote_count = 0
 failure_count = 0
 
-while true:
+while True:
     # Vote request payload
     data = {
         "action": "mog_cast_vote",
