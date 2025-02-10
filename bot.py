@@ -18,7 +18,7 @@ CONTESTANT_ID = 4396
 # TOTAL_VOTES = 50000  # Total votes you want to send
 # DELAY_RANGE = (2, 4)  # Random delay range (seconds)
 MAX_FAILURES = 10  # Shut down if remote server fails too many times
-SNS_TOPIC_ARN = "arn:aws:sns:eu-west-3:6644-1898-8747:VoteNotifications"
+SNS_TOPIC_ARN = "arn:aws:sns:eu-west-3:664418988747:VoteNotifications"
 AWS_REGION = "eu-west-3"
 
 ua = UserAgent()
