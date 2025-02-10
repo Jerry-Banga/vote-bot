@@ -4,13 +4,34 @@ import time
 import boto3
 from fake_useragent import UserAgent
 import logging
+from logging.handlers import RotatingFileHandler
 
-# Configure logging to log only errors
-logging.basicConfig(
-    filename="/var/log/vote_bot/error.log",  # Store logs in /var/log/vote_bot/
-    level=logging.ERROR,  # Only log errors
-    format="%(asctime)s - %(levelname)s - %(message)s"
+# Log file paths
+error_log_file = "/var/log/vote_bot/error.log"
+success_log_file = "/var/log/vote_bot/success.log"
+
+# Configure rotating log for errors
+error_handler = RotatingFileHandler(
+    error_log_file, 
+    maxBytes=10 * 1024 * 1024,  # Max log file size: 10MB
+    backupCount=3  # Keep 3 backup logs
 )
+error_handler.setLevel(logging.ERROR)  # Only log errors
+error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+# Configure rotating log for successful outputs
+success_handler = RotatingFileHandler(
+    success_log_file, 
+    maxBytes=10 * 1024 * 1024,  # Max log file size: 10MB
+    backupCount=3  # Keep 3 backup logs
+)
+success_handler.setLevel(logging.INFO)  # Log successful outputs (INFO level)
+success_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+# Add the handlers to the root logger
+logger = logging.getLogger()
+logger.addHandler(error_handler)
+logger.addHandler(success_handler)
 
 # === CONFIGURATION ===
 VOTE_URL = "https://momentofglow.shalina.com/wp-admin/admin-ajax.php"
@@ -91,7 +112,7 @@ while true:
         if response.status_code == 200:
             result = response.json()
             if result.get("success"):
-                print(f"[✔] Vote {vote_count + 1}: Success - {result['data']['message']}")
+                logging.info(f"[✔] Vote {vote_count + 1}: Success - {result['data']['message']}")
                 vote_count += 1
                 failure_count = 0  # Reset failure count on success
 
@@ -102,7 +123,7 @@ while true:
             else:
                 logging.error(f"[✖] Vote {vote_count + 1}: Failed - {result['data']['message']}")
                 if "limite de votos" in result["data"]["message"]:
-                    print("[!] Session limit reached. Restarting session...")
+                    logging.info("[!] Session limit reached. Restarting session...")
                     session.close()
                     time.sleep(2)
                     session = create_new_session()
