@@ -1,0 +1,3 @@
+requests
+fake-useragent
+boto3  # For AWS SNS notifications
