@@ -108,8 +108,11 @@ while True:
                 failure_count = 0  # Reset failure count on success
 
                 if  vote_count % 10000 == 0:
-                    SERVER_NAME = get_instance_name()
-                    send_sns_notification("Vote Bot Update", f"Bot({SERVER_NAME}) has sent {vote_count} votes.")
+                    try:
+                        SERVER_NAME = get_instance_name()
+                        send_sns_notification("Vote Bot Update", f"Bot({SERVER_NAME}) has sent {vote_count} votes.")
+                    except as E:
+                        logging.error(f"Error sending SNS notification: {str(e)}")
 
             else:
                 logging.error(f"[✖] Vote {vote_count + 1}: Failed - {result['data']['message']}")
