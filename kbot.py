@@ -111,7 +111,7 @@ while True:
                     try:
                         SERVER_NAME = get_instance_name()
                         send_sns_notification("Vote Bot Update", f"Bot({SERVER_NAME}) has sent {vote_count} votes.")
-                    except as E:
+                    except Exception as e:
                         logging.error(f"Error sending SNS notification: {str(e)}")
 
             else:
