@@ -6,32 +6,23 @@ from fake_useragent import UserAgent
 import logging
 from logging.handlers import RotatingFileHandler
 
-# Log file paths
-error_log_file = "/var/log/vote_bot/error.log"
-success_log_file = "/var/log/vote_bot/success.log"
-
-# Configure rotating log for errors
-error_handler = RotatingFileHandler(
-    error_log_file, 
-    maxBytes=10 * 1024 * 1024,  # Max log file size: 10MB
-    backupCount=3  # Keep 3 backup logs
+# Configure logging to log both errors and successful outputs
+logging.basicConfig(
+    filename="/var/log/vote_bot/kbotlog2.log",  # Store logs in /var/log/vote_bot/
+    level=logging.INFO,  # Log all messages from INFO and above (including ERROR)
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
-error_handler.setLevel(logging.ERROR)  # Only log errors
-error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
-# Configure rotating log for successful outputs
-success_handler = RotatingFileHandler(
-    success_log_file, 
-    maxBytes=10 * 1024 * 1024,  # Max log file size: 10MB
-    backupCount=3  # Keep 3 backup logs
+# Set up the log rotation (e.g., 10MB max file size, 5 backup files)
+handler = RotatingFileHandler(
+    "/var/log/vote_bot/kbotlog2.log", maxBytes=10*1024*1024, backupCount=5
 )
-success_handler.setLevel(logging.INFO)  # Log successful outputs (INFO level)
-success_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
 
-# Add the handlers to the root logger
-logger = logging.getLogger()
-logger.addHandler(error_handler)
-logger.addHandler(success_handler)
+# Add the handler to the logger
+logging.getLogger().addHandler(handler)
 
 # === CONFIGURATION ===
 VOTE_URL = "https://momentofglow.shalina.com/wp-admin/admin-ajax.php"
@@ -71,28 +62,15 @@ def send_sns_notification(subject, message):
         Message=message,
         Subject=subject
     )
-    print(f"[📧] Notification sent: {response['MessageId']}")
+    logging.info(f"[📧] Notification sent: {response['MessageId']}")
 
 def stop_ec2_instance():
     """Shut down the EC2 instance if the remote server is unresponsive."""
     instance_id = requests.get("http://169.254.169.254/latest/meta-data/instance-id").text
-    print(f"[⚠] Stopping EC2 instance: {instance_id}")
+    logging.info(f"[⚠] Stopping EC2 instance: {instance_id}")
     send_sns_notification("Vote Bot - Shutting Down", f"EC2 instance {instance_id} is shutting down due to server issues.")
     ec2_client.stop_instances(InstanceIds=[instance_id])
 
-def get_instance_name():
-    instance_id = requests.get("http://169.254.169.254/latest/meta-data/instance-id").text
-    try:
-        result = subprocess.run(
-            ["aws", "ec2", "describe-instances",
-             "--instance-ids", instance_id,
-             "--query", "Reservations[0].Instances[0].Tags[?Key=='Name'].Value",
-             "--output", "text"],
-            capture_output=True, text=True, check=True
-        )
-        return result.stdout.strip() or "Unknown-Server"
-    except Exception:
-        return "Unknown-Server"
 
 
 # Start the first session
@@ -115,11 +93,6 @@ while True:
                 logging.info(f"[✔] Vote {vote_count + 1}: Success - {result['data']['message']}")
                 vote_count += 1
                 failure_count = 0  # Reset failure count on success
-
-                if  vote_count % 10000 == 0:
-                    SERVER_NAME = get_instance_name()
-                    send_sns_notification("Vote Bot Update", f"Bot({SERVER_NAME}) has sent {vote_count} votes.")
-
             else:
                 logging.error(f"[✖] Vote {vote_count + 1}: Failed - {result['data']['message']}")
                 if "limite de votos" in result["data"]["message"]:
