@@ -8,14 +8,14 @@ from logging.handlers import RotatingFileHandler
 
 # Configure logging to log both errors and successful outputs
 logging.basicConfig(
-    filename="/var/log/vote_bot/kbotlog2.log",  # Store logs in /var/log/vote_bot/
+    filename="/var/log/vote_bot/kbot2.log",  # Store logs in /var/log/vote_bot/
     level=logging.INFO,  # Log all messages from INFO and above (including ERROR)
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 # Set up the log rotation (e.g., 10MB max file size, 5 backup files)
 handler = RotatingFileHandler(
-    "/var/log/vote_bot/kbotlog2.log", maxBytes=10*1024*1024, backupCount=5
+    "/var/log/vote_bot/kbot2backup.log", maxBytes=10*1024*1024, backupCount=5
 )
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
