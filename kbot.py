@@ -62,12 +62,12 @@ def send_sns_notification(subject, message):
         Message=message,
         Subject=subject
     )
-    print(f"[📧] Notification sent: {response['MessageId']}")
+    logging.info(f"[📧] Notification sent: {response['MessageId']}")
 
 def stop_ec2_instance():
     """Shut down the EC2 instance if the remote server is unresponsive."""
     instance_id = requests.get("http://169.254.169.254/latest/meta-data/instance-id").text
-    print(f"[⚠] Stopping EC2 instance: {instance_id}")
+    logging.info(f"[⚠] Stopping EC2 instance: {instance_id}")
     send_sns_notification("Vote Bot - Shutting Down", f"EC2 instance {instance_id} is shutting down due to server issues.")
     ec2_client.stop_instances(InstanceIds=[instance_id])
 
