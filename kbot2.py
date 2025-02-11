@@ -8,14 +8,14 @@ from logging.handlers import RotatingFileHandler
 
 # Configure logging to log both errors and successful outputs
 logging.basicConfig(
-    filename="/var/log/vote_bot/kbotlog.log",  # Store logs in /var/log/vote_bot/
+    filename="/var/log/vote_bot/kbotlog2.log",  # Store logs in /var/log/vote_bot/
     level=logging.INFO,  # Log all messages from INFO and above (including ERROR)
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 # Set up the log rotation (e.g., 10MB max file size, 5 backup files)
 handler = RotatingFileHandler(
-    "/var/log/vote_bot/kbotlog.log", maxBytes=10*1024*1024, backupCount=5
+    "/var/log/vote_bot/kbotlog2.log", maxBytes=10*1024*1024, backupCount=5
 )
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -71,19 +71,6 @@ def stop_ec2_instance():
     send_sns_notification("Vote Bot - Shutting Down", f"EC2 instance {instance_id} is shutting down due to server issues.")
     ec2_client.stop_instances(InstanceIds=[instance_id])
 
-def get_instance_name():
-    instance_id = requests.get("http://169.254.169.254/latest/meta-data/instance-id").text
-    try:
-        result = subprocess.run(
-            ["aws", "ec2", "describe-instances",
-             "--instance-ids", instance_id,
-             "--query", "Reservations[0].Instances[0].Tags[?Key=='Name'].Value",
-             "--output", "text"],
-            capture_output=True, text=True, check=True
-        )
-        return result.stdout.strip() or "Unknown-Server"
-    except Exception:
-        return "Unknown-Server"
 
 
 # Start the first session
@@ -106,14 +93,6 @@ while True:
                 logging.info(f"[✔] Vote {vote_count + 1}: Success - {result['data']['message']}")
                 vote_count += 1
                 failure_count = 0  # Reset failure count on success
-
-                if  vote_count % 10000 == 0:
-                    try:
-                        SERVER_NAME = get_instance_name()
-                        send_sns_notification("Vote Bot Update", f"Bot({SERVER_NAME}) has sent {vote_count} votes.")
-                    except Exception as e:
-                        logging.error(f"Error sending SNS notification: {str(e)}")
-
             else:
                 logging.error(f"[✖] Vote {vote_count + 1}: Failed - {result['data']['message']}")
                 if "limite de votos" in result["data"]["message"]:
