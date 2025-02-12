@@ -15,7 +15,7 @@ logging.basicConfig(
 
 # Set up the log rotation (e.g., 10MB max file size, 5 backup files)
 handler = RotatingFileHandler(
-    "/var/log/vote_bot/kbotbackup.log", maxBytes=10*1024*1024, backupCount=5
+    "/var/log/vote_bot/kbot.log", maxBytes=10*1024*1024, backupCount=5
 )
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -64,11 +64,38 @@ def send_sns_notification(subject, message):
     )
     logging.info(f"[📧] Notification sent: {response['MessageId']}")
 
+def get_instance_id():
+    """Retrieve the instance ID using IMDSv2."""
+    try:
+        # Get IMDSv2 token
+        token = requests.put(
+            "http://169.254.169.254/latest/api/token",
+            headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},
+            timeout=2
+        ).text
+        
+        # Use the token to fetch the instance ID
+        instance_id = requests.get(
+            "http://169.254.169.254/latest/meta-data/instance-id",
+            headers={"X-aws-ec2-metadata-token": token},
+            timeout=2
+        ).text
+
+        return instance_id
+    except requests.RequestException:
+        return None
+
 def stop_ec2_instance():
     """Shut down the EC2 instance if the remote server is unresponsive."""
-    instance_id = requests.get("http://169.254.169.254/latest/meta-data/instance-id").text
+    instance_id = get_instance_id()
+    
+    if not instance_id:
+        logging.error("[❌] Failed to retrieve instance ID!")
+        return
+    
     logging.info(f"[⚠] Stopping EC2 instance: {instance_id}")
-    send_sns_notification("Vote Bot - Shutting Down", f"EC2 instance {instance_id} is shutting down due to server issues.")
+    send_sns_notification(f"Vote Bot(kbot) - Shutting Down", f"EC2 instance {instance_id} is shutting down due to server issues.")
+    
     ec2_client.stop_instances(InstanceIds=[instance_id])
 
 
